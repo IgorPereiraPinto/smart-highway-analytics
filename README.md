@@ -2,8 +2,11 @@
 
 Dashboard web (HTML + CSS + JS) com foco em **tráfego rodoviário, tempo de viagem, segurança viária e visão executiva (OPEX/CAPEX e Receita)** — estruturado para ser **replicável no Power BI** (mesma lógica de filtros → KPIs → visuais).
 
-## 🔗 Dashboard (link fixo)
-> Em breve: GitHub Pages (o link permanece o mesmo mesmo após atualizações).
+## 🔗 Dashboard
+
+[![Abrir Dashboard](https://img.shields.io/badge/Abrir%20Dashboard-GitHub%20Pages-2ea44f?style=for-the-badge)](https://igorpereirapinto.github.io/smart-highway-analytics/)
+
+➡️ Link direto: https://igorpereirapinto.github.io/smart-highway-analytics/
 
 ## 🎯 Objetivo
 Entregar uma visão **executiva e operacional** para tomada de decisão:
