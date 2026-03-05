@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Highway Analytics — v6.9 (fix)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --eco-green:#006838; --eco-green-mid:#00843D; --eco-green-dk:#004D28;
+  --eco-lime:#8DC63F; --eco-lime-light:#B5D96A; --eco-teal:#00A98F;
+  --eco-orange:#F7941D; --eco-red:#E53E3E; --eco-yellow:#F6C90E; --eco-blue:#2D6DB4;
+  --eco-bg:#EEF3EE; --eco-surface:#FFFFFF; --eco-border:#D0E8D0;
+  --eco-text:#1A2E1A; --eco-muted:#5A7A5A;
+  --shadow-sm:0 2px 8px rgba(0,104,56,.08);
+  --shadow-md:0 4px 20px rgba(0,104,56,.13);
+  --r:12px; --r-lg:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sora',sans-serif;background:var(--eco-bg);color:var(--eco-text);min-height:100vh;overflow-x:hidden;}
+code{font-family:'JetBrains Mono',monospace;}
+/* TOPBAR */
+.topbar{
+  background:linear-gradient(135deg,var(--eco-green-dk) 0%,var(--eco-green) 60%,var(--eco-green-mid) 100%);
+  padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 3px 16px rgba(0,0,0,.30);position:sticky;top:0;z-index:200;
+}
+.tb-logo{display:flex;align-items:center;gap:12px;}
+.tb-hexagon{width:36px;height:36px;background:var(--eco-lime);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--eco-green);}
+.tb-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:.4px;}
+.tb-views{display:flex;gap:4px;background:rgba(0,0,0,.2);padding:4px;border-radius:24px;}
+.vbtn{padding:6px 18px;border-radius:20px;border:none;cursor:pointer;font-family:'Sora',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:.6px;transition:all .25s;white-space:nowrap;}
+.vbtn.active{background:var(--eco-lime);color:var(--eco-green);box-shadow:0 2px 10px rgba(141,198,63,.5);}
+.vbtn:not(.active){background:transparent;color:rgba(255,255,255,.75);}
+.vbtn:hover:not(.active){background:rgba(255,255,255,.15);color:#fff;}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.tb-clock{font-size:10px;color:var(--eco-lime-light);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.tb-live{display:flex;align-items:center;gap:6px;background:rgba(141,198,63,.18);
+  border:1px solid rgba(141,198,63,.4);border-radius:20px;padding:4px 10px;
+  font-size:10px;font-weight:700;color:var(--eco-lime-light);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--eco-lime);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+.tb-api-group{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:4px 10px;}
+.tb-api-item{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:42px;}
+.tb-api-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-bottom:1px;}
+.tb-api-dot.ok{background:var(--eco-lime);} .tb-api-dot.warn{background:var(--eco-orange);} .tb-api-dot.err{background:var(--eco-red);}
+.tb-api-lbl{font-size:8px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
+.tb-api-ts{font-size:9px;font-weight:700;color:var(--eco-lime-light);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.tb-api-vdiv{width:1px;height:28px;background:rgba(255,255,255,.15);}
+/* FILTER BAR */
+.fbar{background:var(--eco-surface);border-bottom:1px solid var(--eco-border);padding:8px 28px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.fl{font-size:10px;font-weight:800;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.8px;}
+.fsel{font-family:'Sora',sans-serif;font-size:11px;font-weight:600;border:1.5px solid var(--eco-border);
+  border-radius:8px;padding:5px 10px;background:var(--eco-bg);color:var(--eco-text);cursor:pointer;outline:none;transition:border .2s;}
+.fsel:focus{border-color:var(--eco-green);}
+.fdiv{width:1px;height:22px;background:var(--eco-border);}
+.ptabs-wrap{display:flex;gap:2px;background:var(--eco-bg);border-radius:12px;padding:2px;margin:0 4px;}
+.pchip{padding:4px 14px;border-radius:10px;font-size:11px;font-weight:800;cursor:pointer;border:none;
+  background:transparent;color:var(--eco-muted);font-family:'Sora',sans-serif;transition:all .2s;}
+.pchip.active{background:var(--eco-green);color:#fff;box-shadow:0 2px 8px rgba(0,104,56,.3);}
+.pchip:hover:not(.active){background:var(--eco-border);}
+.gl-btn{font-family:'Sora',sans-serif;font-size:10px;font-weight:800;background:rgba(0,104,56,.07);
+  border:1.5px solid rgba(0,104,56,.2);border-radius:8px;padding:5px 10px;color:var(--eco-green);cursor:pointer;display:flex;align-items:center;gap:5px;}
+/* NAV PAGES */
+.pnav{background:var(--eco-surface);border-bottom:2px solid var(--eco-border);padding:0 28px;display:flex;gap:0;overflow-x:auto;}
+.ptab{padding:11px 18px;font-size:11px;font-weight:800;color:var(--eco-muted);cursor:pointer;border:none;background:none;
+  border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;font-family:'Sora',sans-serif;margin-bottom:-2px;}
+.ptab.active{color:var(--eco-green);border-bottom-color:var(--eco-lime);}
+.ptab:hover:not(.active){color:var(--eco-green);background:var(--eco-bg);}
+.onepage-view,.multipage-view{display:none;}
+.onepage-view.active,.multipage-view.active{display:block;}
+.page-content{display:none;}
+.page-content.active{display:block;}
+/* LAYOUT */
+.dbody{padding:18px 28px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;}
+.gap{margin-bottom:16px;}
+.card{background:var(--eco-surface);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm);border:1px solid var(--eco-border);}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.ct{font-size:11px;font-weight:800;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:7px;}
+.cicon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--eco-bg);}
+/* KPI */
+.kpi{background:var(--eco-surface);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--eco-border);position:relative;overflow:hidden;}
+.kpi:hover{box-shadow:var(--shadow-md);}
+.kpi.green{border-left:4px solid var(--eco-green);}
+.kpi.lime{border-left:4px solid var(--eco-lime);}
+.kpi.teal{border-left:4px solid var(--eco-teal);}
+.kpi.orange{border-left:4px solid var(--eco-orange);}
+.kpi.red{border-left:4px solid var(--eco-red);}
+.kpi.blue{border-left:4px solid var(--eco-blue);}
+.klabel{font-size:10px;font-weight:900;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.kval{font-size:26px;font-weight:900;color:var(--eco-text);line-height:1;}
+.kval small{font-size:13px;font-weight:600;color:var(--eco-muted);}
+.kfoot{margin-top:7px;font-size:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.kup{color:var(--eco-green);font-weight:800;}
+.kdn{color:var(--eco-red);font-weight:800;}
+.kwrn{color:var(--eco-orange);font-weight:800;}
+.kicon{position:absolute;right:14px;top:14px;font-size:20px;opacity:.15;}
+.kpi-cmp{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(0,104,56,.15);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.kcmp-tag{font-size:10px;font-weight:900;padding:2px 7px;border-radius:8px;white-space:nowrap;}
+.kcmp-tag.pos{background:rgba(141,198,63,.2);color:#2a5a12;}
+.kcmp-tag.neg{background:rgba(229,62,62,.12);color:#9a1c1c;}
+.kcmp-tag.neu{background:rgba(90,122,90,.1);color:var(--eco-muted);}
+.kcmp-tag.wrn{background:rgba(247,148,29,.12);color:#9a4800;}
+.kcmp-lbl{font-size:9px;color:var(--eco-muted);}
+/* Weather */
+.wcard{background:linear-gradient(135deg,var(--eco-green) 0%,var(--eco-teal) 100%);
+  border-radius:var(--r-lg);padding:18px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md);}
+.wapi{position:absolute;top:10px;right:12px;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:2px 7px;font-size:9px;font-weight:900;}
+.wsegment-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.wseg-btn{font-size:9px;font-weight:800;padding:3px 8px;border-radius:8px;cursor:pointer;border:none;font-family:'Sora',sans-serif;
+  background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);transition:all .2s;}
+.wseg-btn.active{background:rgba(255,255,255,.95);color:var(--eco-green);}
+.wloc{font-size:10px;opacity:.85;margin-bottom:8px;font-weight:600;}
+.wmain{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.wtemp{font-size:42px;font-weight:900;line-height:1;}
+.wtemp span{font-size:20px;opacity:.85;}
+.wicon{font-size:36px;}
+.wdesc{font-size:12px;opacity:.90;font-weight:600;margin-bottom:12px;}
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.wstat{background:rgba(255,255,255,.12);border-radius:8px;padding:6px 8px;}
+.wstat-lbl{font-size:9px;opacity:.78;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.wstat-val{font-size:13px;font-weight:900;margin-top:2px;}
+.wfooter{margin-top:10px;font-size:9px;opacity:.75;display:flex;align-items:center;justify-content:space-between;}
+/* Travel time */
+.tvcard{background:var(--eco-surface);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm);border:1px solid var(--eco-border);}
+.tv-sel{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.tv-citysel{flex:1;font-family:'Sora',sans-serif;font-size:11px;font-weight:800;
+  border:1.5px solid var(--eco-border);border-radius:8px;padding:6px 10px;background:var(--eco-bg);cursor:pointer;outline:none;}
+.tv-citysel:focus{border-color:var(--eco-green);}
+.tv-swap{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--eco-border);
+  background:var(--eco-bg);cursor:pointer;font-size:16px;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.tv-swap:hover{background:var(--eco-lime);border-color:var(--eco-lime);transform:rotate(180deg);}
+.tv-result{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;background:var(--eco-bg);border-radius:10px;padding:10px 14px;}
+.tv-time{font-size:32px;font-weight:900;color:var(--eco-text);line-height:1;}
+.tv-time small{font-size:14px;font-weight:700;color:var(--eco-muted);}
+.tv-meta{font-size:10px;color:var(--eco-muted);margin-top:4px;}
+.tv-pill{padding:4px 10px;border-radius:12px;font-size:10px;font-weight:900;white-space:nowrap;}
+.tv-pill.free{background:rgba(141,198,63,.2);color:#3a6b12;}
+.tv-pill.slow{background:rgba(246,201,14,.25);color:#7a6200;}
+.tv-pill.heavy{background:rgba(247,148,29,.2);color:#9a4800;}
+.tv-pill.jammed{background:rgba(229,62,62,.18);color:#9a1c1c;}
+.tv-via{font-size:9px;color:var(--eco-muted);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.impact-title{font-size:10px;font-weight:900;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.7px;margin:10px 0 6px;}
+.impact-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--eco-border);font-size:11px;}
+.impact-row:last-child{border:none;}
+.idk{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.idk.red{background:var(--eco-red);} .idk.orange{background:var(--eco-orange);}
+.idk.yellow{background:var(--eco-yellow);} .idk.green{background:var(--eco-lime);}
+.idk.blue{background:var(--eco-blue);}
+.impact-row span{margin-left:auto;font-weight:900;font-size:11px;white-space:nowrap;}
+/* Route table */
+.rtable{width:100%;border-collapse:collapse;font-size:11px;}
+.rtable thead tr{background:var(--eco-bg);}
+.rtable th{padding:7px 10px;text-align:left;font-size:9px;font-weight:900;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.7px;}
+.rtable td{padding:7px 10px;border-bottom:1px solid var(--eco-border);}
+.rtable tbody tr:hover{background:rgba(141,198,63,.08);}
+.rdot{display:inline-flex;align-items:center;gap:5px;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot.g{background:var(--eco-lime);} .dot.y{background:var(--eco-yellow);} .dot.o{background:var(--eco-orange);} .dot.r{background:var(--eco-red);}
+.rvia{font-size:9px;color:var(--eco-muted);font-family:'JetBrains Mono',monospace;}
+/* Charts */
+.chart-box{position:relative;width:100%;}
+.ch160{height:160px;} .ch180{height:180px;} .ch200{height:200px;} .ch220{height:220px;} .ch260{height:260px;} .ch280{height:280px;}
+/* Alerts */
+.abox{display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:10px;margin-bottom:8px;border-left:3px solid;}
+.abox.crit{background:rgba(229,62,62,.08);border-color:var(--eco-red);}
+.abox.warn{background:rgba(247,148,29,.08);border-color:var(--eco-orange);}
+.abox.info{background:rgba(246,201,14,.1);border-color:var(--eco-yellow);}
+.abox.ok{background:rgba(141,198,63,.1);border-color:var(--eco-lime);}
+.abox.blue{background:rgba(45,109,180,.08);border-color:var(--eco-blue);}
+.abox-title{font-size:11px;font-weight:900;color:var(--eco-text);}
+.abox-body{font-size:10px;color:var(--eco-muted);line-height:1.45;}
+.abox-time{font-size:9px;color:var(--eco-muted);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+/* Comparison strip */
+.cmp-strip{background:linear-gradient(135deg,rgba(0,104,56,.06) 0%,rgba(141,198,63,.06) 100%);
+  border-bottom:1px solid var(--eco-border);padding:10px 28px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.cmp-title{font-size:10px;font-weight:900;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.8px;margin-right:20px;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.cmp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;flex:1;}
+.cmp-item{padding:6px 14px;border-right:1px solid var(--eco-border);text-align:center;}
+.cmp-item:last-child{border-right:none;}
+.cmp-lbl{font-size:9px;font-weight:900;color:var(--eco-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;}
+.cmp-val{font-size:16px;font-weight:900;color:var(--eco-text);line-height:1;}
+.cmp-delta{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;padding:2px 6px;border-radius:8px;margin-top:3px;}
+.cmp-delta.up{background:rgba(141,198,63,.2);color:#2a5a12;}
+.cmp-delta.dn{background:rgba(229,62,62,.12);color:#9a1c1c;}
+.cmp-delta.neu{background:rgba(90,122,90,.1);color:var(--eco-muted);}
+.cmp-delta.warn{background:rgba(247,148,29,.12);color:#9a4800;}
+/* Footer */
+.dfooter{background:var(--eco-green);padding:10px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.dfooter span{font-size:10px;color:rgba(255,255,255,.75);}
+@media(max-width:900px){.g5{grid-template-columns:repeat(3,1fr);} .g4{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:1fr 1fr;} .cmp-grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:600px){.g2,.g3,.g4,.g5{grid-template-columns:1fr;} .dbody{padding:12px 14px;} .cmp-grid{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">
+    <div class="tb-hexagon">SHA</div>
+    <div class="tb-title">Smart Highway Analytics</div>
+  </div>
+
+  <div class="tb-views">
+    <button class="vbtn active" id="btnOne" onclick="switchView('onepage',this)">📊 Painel Executivo</button>
+    <button class="vbtn" id="btnMulti" onclick="switchView('multipage',this)">🔍 Análises por Área</button>
+  </div>
+
+  <div class="tb-right">
+    <div class="tb-api-group">
+      <div class="tb-api-item">
+        <span class="tb-api-dot ok"></span><span class="tb-api-lbl">API CLIMA</span><span class="tb-api-ts" id="apiClimaTs">--:--</span>
+      </div>
+      <div class="tb-api-vdiv"></div>
+      <div class="tb-api-item">
+        <span class="tb-api-dot ok"></span><span class="tb-api-lbl">API ROTAS</span><span class="tb-api-ts" id="apiRotasTs">--:--</span>
+      </div>
+      <div class="tb-api-vdiv"></div>
+      <div class="tb-api-item">
+        <span class="tb-api-lbl">ETL</span><span class="tb-api-ts" id="lastEtl">--:-- ✓</span>
+      </div>
+      <div class="tb-api-vdiv"></div>
+      <div class="tb-api-item">
+        <span class="tb-api-lbl">PRÓX</span><span class="tb-api-ts" id="nextEtl">--:--</span>
+      </div>
+    </div>
+    <span class="tb-clock" id="clock">Atualizado: --</span>
+    <div class="tb-live"><div class="live-dot"></div>AO VIVO</div>
+  </div>
+</div>
+
+<div class="fbar">
+  <span class="fl">Filtros</span>
+
+  <!-- Mantém: combo + individuais | Oculta: demais Ecovias -->
+  <select class="fsel" id="fConcessao">
+    <option value="combo">Imigrantes + Raposo + Castelo</option>
+    <option value="imi">Imigrantes (SP-150/SP-160)</option>
+    <option value="rap">Raposo (SP-270)</option>
+    <option value="cast">Castelo (SP-280)</option>
+  </select>
+
+  <!-- Corredor -->
+  <select class="fsel" id="fCorredor">
+    <option value="all">Todos os corredores</option>
+    <option value="rodovia">Rodovias</option>
+    <option value="urbano">Urbano (Grande SP)</option>
+  </select>
+
+  <!-- Período base -->
+  <div class="ptabs-wrap" id="periodTabs">
+    <button class="pchip active" data-p="hoje" onclick="setPeriod('hoje',this)">Hoje</button>
+    <button class="pchip" data-p="semana" onclick="setPeriod('semana',this)">Semana</button>
+    <button class="pchip" data-p="mes" onclick="setPeriod('mes',this)">Mês</button>
+    <button class="pchip" data-p="ano" onclick="setPeriod('ano',this)">Ano</button>
+  </div>
+
+  <select class="fsel" id="fSentido">
+    <option value="ambos">Ambos os Sentidos</option>
+    <option value="baixada">Sentido Baixada (SP→Santos)</option>
+    <option value="capital">Sentido Capital (Santos→SP)</option>
+  </select>
+
+  <div class="fdiv"></div>
+  <span class="fl" style="white-space:nowrap;">↔ Comparar com</span>
+
+  <select class="fsel" id="fComparacao">
+    <option value="ontem">Ontem</option>
+    <option value="sem_ant">Semana Anterior</option>
+    <option value="mes_ant">Mês Anterior</option>
+    <option value="ano_ant">Ano Anterior</option>
+    <option value="meta">Meta</option>
+  </select>
+
+  <div class="fdiv"></div>
+
+  <button class="gl-btn" onclick="switchView('multipage',document.getElementById('btnMulti')); setTimeout(()=>switchPage('pg-glossario',document.querySelectorAll('.ptab')[8]),120);">
+    📖 Glossário de Indicadores
+  </button>
+</div>
+
+<div class="cmp-strip">
+  <div class="cmp-title">📊 <span id="cmpTitle">Análise Comparativa</span></div>
+  <div class="cmp-grid" id="cmpGrid"></div>
+</div>
+
+<!-- ONE PAGE -->
+<div class="onepage-view active" id="onepage">
+  <div class="dbody">
+
+    <div class="g5 gap" style="grid-template-columns:repeat(6,1fr);">
+      <div class="kpi green">
+        <div class="klabel">VDM</div>
+        <div class="kval" id="k_vdm">— <small>veíc/dia</small></div>
+        <div class="kfoot" id="k_vdm_foot">—</div>
+        <div class="kpi-cmp" id="kc_vdm"></div>
+        <div class="kicon">🚗</div>
+      </div>
+      <div class="kpi lime">
+        <div class="klabel">Receita de Pedágio</div>
+        <div class="kval" id="k_rec">—</div>
+        <div class="kfoot" id="k_rec_foot">—</div>
+        <div class="kpi-cmp" id="kc_rec"></div>
+        <div class="kicon">💰</div>
+      </div>
+      <div class="kpi teal">
+        <div class="klabel">Velocidade Média</div>
+        <div class="kval" id="k_vel">— <small>km/h</small></div>
+        <div class="kfoot" id="k_vel_foot">—</div>
+        <div class="kpi-cmp" id="kc_vel"></div>
+        <div class="kicon">🚦</div>
+      </div>
+      <div class="kpi orange">
+        <div class="klabel">Acidentes</div>
+        <div class="kval" id="k_ac">—</div>
+        <div class="kfoot" id="k_ac_foot">—</div>
+        <div class="kpi-cmp" id="kc_ac"></div>
+        <div class="kicon">⚠️</div>
+      </div>
+      <div class="kpi red">
+        <div class="klabel">OPEX (% orçado)</div>
+        <div class="kval" id="k_opex">— <small>%</small></div>
+        <div class="kfoot" id="k_opex_foot">—</div>
+        <div class="kpi-cmp" id="kc_opex"></div>
+        <div class="kicon">📋</div>
+      </div>
+      <div class="kpi blue">
+        <div class="klabel">CAPEX (exec.)</div>
+        <div class="kval" id="k_capex">— <small>%</small></div>
+        <div class="kfoot" id="k_capex_foot">—</div>
+        <div class="kpi-cmp" id="kc_capex"></div>
+        <div class="kicon">🏗️</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:240px 1fr 1fr;gap:16px;" class="gap">
+      <div class="wcard">
+        <div class="wapi">🌤️ OpenWeather (demo)</div>
+        <div class="wsegment-tabs">
+          <button class="wseg-btn active" onclick="selectWeatherSeg(0,this)">KM 20</button>
+          <button class="wseg-btn" onclick="selectWeatherSeg(1,this)">Serra</button>
+          <button class="wseg-btn" onclick="selectWeatherSeg(2,this)">Cubatão</button>
+        </div>
+        <div class="wloc" id="wLoc">—</div>
+        <div class="wmain">
+          <div class="wtemp" id="wTemp">—<span>°C</span></div>
+          <div class="wicon" id="wIcon">⛅</div>
+        </div>
+        <div class="wdesc" id="wDesc">—</div>
+        <div class="wgrid">
+          <div class="wstat"><div class="wstat-lbl">💧 Umidade</div><div class="wstat-val" id="wHumid">—</div></div>
+          <div class="wstat"><div class="wstat-lbl">🌬️ Vento</div><div class="wstat-val" id="wWind">—</div></div>
+          <div class="wstat"><div class="wstat-lbl">🌧️ Chuva 1h</div><div class="wstat-val" id="wRain">—</div></div>
+          <div class="wstat"><div class="wstat-lbl">👁️ Visib.</div><div class="wstat-val" id="wVis">—</div></div>
+        </div>
+        <div class="wfooter"><span>🔄 Atualizado: <span id="wTime">--:--</span></span><span>Próx: <span id="wNext">--:--</span></span></div>
+      </div>
+
+      <div class="tvcard">
+        <div class="ch">
+          <div class="ct"><div class="cicon">🗺️</div>TEMPO DE VIAGEM</div>
+          <span style="font-size:9px;color:var(--eco-muted);font-family:'JetBrains Mono',monospace;">Maps API (demo) · <span id="tvApiTs">--:--</span></span>
+        </div>
+        <div class="tv-sel">
+          <select class="tv-citysel" id="tvOrigin" onchange="calcTravel()"></select>
+          <button class="tv-swap" onclick="swapTV()">⇄</button>
+          <select class="tv-citysel" id="tvDest" onchange="calcTravel()"></select>
+        </div>
+        <div class="tv-result">
+          <div>
+            <div style="font-size:9px;color:var(--eco-muted);margin-bottom:2px;">Tempo com tráfego real</div>
+            <div class="tv-time" id="tvTime">— <small>min</small></div>
+            <div class="tv-meta">Livre: <strong id="tvFree">—</strong> · <strong id="tvDist">—</strong></div>
+            <div class="tv-via" id="tvVia">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="tv-pill slow" id="tvStatus">—</div>
+            <div style="font-size:10px;color:var(--eco-muted);margin-top:5px;">+<span id="tvDelay">—</span> min atraso</div>
+            <div style="font-size:10px;font-weight:800;color:var(--eco-muted);margin-top:3px;" id="tvVkt">VKT: —</div>
+          </div>
+        </div>
+        <div class="impact-title">Fatores de Impacto (explicáveis)</div>
+        <div id="tvImpacts"></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          <div class="ct"><div class="cicon">🛣️</div>STATUS DAS ROTAS</div>
+          <span style="font-size:9px;color:var(--eco-muted);font-family:'JetBrains Mono',monospace;">▶ clique p/ detalhes · <span id="routeTs">--:--</span></span>
+        </div>
+        <table class="rtable">
+          <thead><tr><th>Rota</th><th>Via</th><th>Status</th><th>Vel.</th><th>Cong.</th><th>Atraso</th></tr></thead>
+          <tbody id="routeTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 300px 240px;gap:16px;" class="gap">
+      <div class="card">
+        <div class="ch">
+          <div class="ct"><div class="cicon">📈</div>VOLUME — HORA A HORA</div>
+          <span style="font-size:9px;color:var(--eco-muted)" id="volHint">—</span>
+        </div>
+        <div class="chart-box ch180"><canvas id="chart_volume"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;"><div class="cicon">💼</div>OPEX & CAPEX (drivers)</div>
+        <div id="budgetDrivers"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;"><div class="cicon">🚨</div>ALERTAS ATIVOS</div>
+        <div id="alertsBox"></div>
+      </div>
+    </div>
+
+    <div class="g3 gap">
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">🔮</div>PROJEÇÃO 7 DIAS (demo)</div></div>
+        <div class="chart-box ch180"><canvas id="chart_forecast"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">💰</div>RECEITA POR PRAÇA</div></div>
+        <div class="chart-box ch180"><canvas id="chart_pracas"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">⚖️</div>COMPARATIVO (base vs. referência)</div></div>
+        <div class="chart-box ch180"><canvas id="chart_cmp"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MULTIPAGE -->
+<div class="multipage-view" id="multipage">
+  <div class="pnav">
+    <button class="ptab active" onclick="switchPage('pg-exec',this)">📊 Executivo</button>
+    <button class="ptab" onclick="switchPage('pg-ops',this)">🚦 Operações Tempo Real</button>
+    <button class="ptab" onclick="switchPage('pg-traffic',this)">🚗 Tráfego & Fluxo</button>
+    <button class="ptab" onclick="switchPage('pg-season',this)">📅 Sazonalidade</button>
+    <button class="ptab" onclick="switchPage('pg-revenue',this)">💰 Receita & Pedágio</button>
+    <button class="ptab" onclick="switchPage('pg-finance',this)">📋 OPEX & CAPEX</button>
+    <button class="ptab" onclick="switchPage('pg-safety',this)">⚠️ Segurança Viária</button>
+    <button class="ptab" onclick="switchPage('pg-data',this)">🔧 Fontes e APIs</button>
+    <button class="ptab" onclick="switchPage('pg-glossario',this)">📖 Glossário</button>
+  </div>
+
+  <div class="page-content active dbody" id="pg-exec">
+    <div class="card">
+      <div class="ct"><div class="cicon">🧭</div>Resumo Executivo</div>
+      <div style="font-size:11px;color:var(--eco-muted);line-height:1.6;margin-top:8px">
+        Esta visão herda os filtros do topo. Todos os KPIs, gráficos e comparativos são recalculados pelo <strong>mesmo motor</strong>.
+        Use <strong>Comparar com</strong> para avaliar variação vs. período anterior ou vs. <strong>Meta</strong>.
+      </div>
+    </div>
+    <div class="g2 gap" style="margin-top:16px">
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">📈</div>VDM — tendência (30 pontos)</div></div>
+        <div class="chart-box ch260"><canvas id="chart_exec_trend"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">🏆</div>Ranking — Praças / Rotas</div></div>
+        <div class="chart-box ch260"><canvas id="chart_exec_rank"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-ops">
+    <div class="card">
+      <div class="ct"><div class="cicon">⚡</div>Operação — Tempo Real</div>
+      <div style="font-size:11px;color:var(--eco-muted);line-height:1.6;margin-top:8px">
+        Página focada em <strong>eventos</strong> (acidentes/clima/congestionamento) e seus impactos.
+      </div>
+    </div>
+    <div class="g2 gap" style="margin-top:16px">
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">🛣️</div>Rotas filtradas + urbanas</div></div>
+        <table class="rtable">
+          <thead><tr><th>Rota</th><th>Via</th><th>Status</th><th>Vel.</th><th>Cong.</th><th>Atraso</th></tr></thead>
+          <tbody id="routeTbody_ops"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct"><div class="cicon">📉</div>Perfil de Velocidade (demo)</div></div>
+        <div class="chart-box ch260"><canvas id="chart_speed_profile"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-traffic">
+    <div class="g2 gap">
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">📈</div>Volume por Hora</div></div>
+        <div class="chart-box ch260"><canvas id="chart_traffic_hour"></canvas></div></div>
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">🚦</div>Índice de Congestionamento</div></div>
+        <div class="chart-box ch260"><canvas id="chart_traffic_cong"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-season">
+    <div class="g2 gap">
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">📅</div>Padrão por Dia da Semana</div></div>
+        <div class="chart-box ch260"><canvas id="chart_season_dow"></canvas></div></div>
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">🗓️</div>Índice Mensal</div></div>
+        <div class="chart-box ch260"><canvas id="chart_season_month"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-revenue">
+    <div class="g2 gap">
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">💳</div>Receita vs Meta</div></div>
+        <div class="chart-box ch260"><canvas id="chart_rev_meta"></canvas></div></div>
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">🧾</div>Mix de Pagamento</div></div>
+        <div class="chart-box ch260"><canvas id="chart_rev_mix"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-finance">
+    <div class="g2 gap">
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">📋</div>OPEX — Real x Orçado</div></div>
+        <div class="chart-box ch260"><canvas id="chart_fin_opex"></canvas></div></div>
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">🏗️</div>CAPEX — Execução</div></div>
+        <div class="chart-box ch260"><canvas id="chart_fin_capex"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-safety">
+    <div class="g2 gap">
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">⚠️</div>Acidentes por Hora</div></div>
+        <div class="chart-box ch260"><canvas id="chart_safe_hour"></canvas></div></div>
+      <div class="card"><div class="ch"><div class="ct"><div class="cicon">🌦️</div>Acidentes por Clima</div></div>
+        <div class="chart-box ch260"><canvas id="chart_safe_weather"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-data">
+    <div class="card">
+      <div class="ct"><div class="cicon">🔌</div>Fontes e APIs</div>
+      <div style="font-size:11px;color:var(--eco-muted);line-height:1.7;margin-top:10px" id="sourcesLong"></div>
+    </div>
+  </div>
+
+  <div class="page-content dbody" id="pg-glossario">
+    <div class="card">
+      <div class="ct"><div class="cicon">📖</div>Glossário (detalhado)</div>
+      <div style="font-size:11px;color:var(--eco-muted);line-height:1.7;margin-top:10px" id="glossLong"></div>
+    </div>
+  </div>
+</div>
+
+<div class="dfooter">
+  <span>Smart Highway Analytics v6.9 · Dados simulados (demo) · Motor único de cálculo</span>
+  <span>Objetivo: decisões executivas (impacto → causa → ação)</span>
+</div>
+
+<script>
+/* ===========================
+   FIX v6.9 — motor único
+   =========================== */
+
+/* ----- Chart defaults ----- */
+const eco = {green:'#006838', gm:'#00843D', lime:'#8DC63F', teal:'#00A98F', orange:'#F7941D', red:'#E53E3E', yellow:'#F6C90E', blue:'#2D6DB4', muted:'#5A7A5A', bg:'#EEF3EE'};
+Chart.defaults.font.family="'Sora',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color=eco.muted;
+
+const tip = {
+  backgroundColor:'rgba(26,46,26,.93)', titleColor:'#fff', bodyColor:'rgba(255,255,255,.88)',
+  borderColor:eco.lime, borderWidth:1, cornerRadius:8, padding:10,
+  titleFont:{weight:'800',size:12}, bodyFont:{size:11}
+};
+
+const CH = {}; // instances
+function safeChart(id, cfg){
+  const el = document.getElementById(id);
+  if(!el) return null;
+  if(CH[id]){ try{CH[id].destroy();}catch(e){} }
+  CH[id] = new Chart(el, cfg);
+  return CH[id];
+}
+
+/* ----- State ----- */
+const state = {
+  concessao: 'combo',
+  corredor: 'all',
+  period: 'hoje',
+  sentido: 'ambos',
+  cmp: 'ontem'
+};
+
+/* ----- Concessões e metas por período (por concessão) ----- */
+const META = {
+  imi:   {hoje:{vdm:48000, rec:2.27e6, vel:55, ac:3, opex:100, capex:70}, semana:{vdm:46000, rec:14.8e6, vel:58, ac:18, opex:100, capex:70}, mes:{vdm:45000, rec:42.5e6, vel:57, ac:55, opex:100, capex:70}, ano:{vdm:44000, rec:480e6, vel:58, ac:650, opex:100, capex:70}},
+  rap:   {hoje:{vdm:22000, rec:0.78e6, vel:62, ac:2, opex:100, capex:65}, semana:{vdm:21000, rec:5.2e6, vel:64, ac:10, opex:100, capex:65}, mes:{vdm:20500, rec:15.4e6, vel:63, ac:30, opex:100, capex:65}, ano:{vdm:20000, rec:180e6, vel:64, ac:320, opex:100, capex:65}},
+  cast:  {hoje:{vdm:26000, rec:0.95e6, vel:60, ac:2, opex:100, capex:68}, semana:{vdm:25000, rec:6.4e6, vel:61, ac:12, opex:100, capex:68}, mes:{vdm:24500, rec:19.8e6, vel:61, ac:36, opex:100, capex:68}, ano:{vdm:24000, rec:220e6, vel:61, ac:380, opex:100, capex:68}},
+  combo: {hoje:{vdm:48000+22000+26000, rec:2.27e6+0.78e6+0.95e6, vel:56, ac:7, opex:100, capex:70},
+          semana:{vdm:46000+21000+25000, rec:14.8e6+5.2e6+6.4e6, vel:58, ac:40, opex:100, capex:70},
+          mes:{vdm:45000+20500+24500, rec:42.5e6+15.4e6+19.8e6, vel:57, ac:121, opex:100, capex:70},
+          ano:{vdm:44000+20000+24000, rec:480e6+180e6+220e6, vel:58, ac:1350, opex:100, capex:70}}
+};
+
+/* ----- Rotas (coerentes por concessão + urbanas) ----- */
+const ROUTES = [
+  // Imigrantes / Anchieta
+  {id:'imi_sp_santos', conc:'imi', corr:'rodovia', origem:'São Paulo', destino:'Santos', via:'Imigrantes SP-160', km:58},
+  {id:'imi_santos_sp', conc:'imi', corr:'rodovia', origem:'Santos', destino:'São Paulo', via:'Imigrantes SP-160', km:58},
+  {id:'anc_sp_litoral', conc:'imi', corr:'rodovia', origem:'São Paulo (ABC)', destino:'Santos/Litoral', via:'Anchieta SP-150', km:55},
+  {id:'anc_litoral_sp', conc:'imi', corr:'rodovia', origem:'Santos', destino:'São Paulo (ABC)', via:'Anchieta SP-150', km:55},
+  // Raposo
+  {id:'rap_sp_cotia', conc:'rap', corr:'rodovia', origem:'São Paulo', destino:'Cotia', via:'Raposo Tavares SP-270', km:32},
+  {id:'rap_sp_itapevi', conc:'rap', corr:'rodovia', origem:'São Paulo', destino:'Itapevi', via:'Raposo Tavares SP-270', km:32},
+  // Castelo
+  {id:'cas_sp_osasco', conc:'cast', corr:'rodovia', origem:'São Paulo', destino:'Osasco', via:'Castelo Branco SP-280', km:18},
+  {id:'cas_sp_indai', conc:'cast', corr:'rodovia', origem:'São Paulo', destino:'Indaiatuba', via:'Castelo Branco SP-280', km:75},
+  // Urbano (Grande SP) — sempre pode aparecer se corredor=urbano ou all
+  {id:'urb_sp_osasco', conc:'urb', corr:'urbano', origem:'São Paulo', destino:'Osasco', via:'Marginais / Castello', km:15},
+  {id:'urb_sp_barueri', conc:'urb', corr:'urbano', origem:'São Paulo', destino:'Barueri', via:'Castello / Rodoanel', km:28},
+  {id:'urb_sp_abc', conc:'urb', corr:'urbano', origem:'São Paulo', destino:'São Bernardo', via:'Anchieta Urbana', km:22},
+  {id:'urb_sp_guarulhos', conc:'urb', corr:'urbano', origem:'São Paulo', destino:'Guarulhos', via:'Dutra / Marginal Tietê', km:20},
+  {id:'urb_sp_santoandre', conc:'urb', corr:'urbano', origem:'São Paulo', destino:'Santo André', via:'Anchieta Urbana', km:18},
+];
+
+const CITIES = [
+  {id:'sp', label:'São Paulo'},
+  {id:'santos', label:'Santos'},
+  {id:'osasco', label:'Osasco'},
+  {id:'barueri', label:'Barueri'},
+  {id:'sbc', label:'São Bernardo'},
+  {id:'guarulhos', label:'Guarulhos'},
+  {id:'cotia', label:'Cotia'},
+  {id:'itapevi', label:'Itapevi'},
+  {id:'indai', label:'Indaiatuba'},
+];
+
+const STATUS_LABEL = {free:'🟢 Livre', slow:'🟡 Lento', heavy:'🟠 Pesado', jammed:'🔴 Parado'};
+const DOT = {free:'g', slow:'y', heavy:'o', jammed:'r'};
+
+/* ----- RNG determinístico (para demo estável) ----- */
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;}}
+function seedFromState(extra=''){ // estável por filtro
+  const s = `${state.concessao}|${state.corredor}|${state.period}|${state.sentido}|${state.cmp}|${extra}`;
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
+  return (h>>>0);
+}
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function pct(a,b){ if(b===0) return 0; return (a-b)/b; }
+
+/* ----- Util format ----- */
+function fmtInt(n){ return Math.round(n).toLocaleString('pt-BR'); }
+function fmtMoney(n){
+  if(n>=1e9) return 'R$ '+(n/1e9).toFixed(2)+'B';
+  if(n>=1e6) return 'R$ '+(n/1e6).toFixed(2)+'M';
+  if(n>=1e3) return 'R$ '+(n/1e3).toFixed(0)+'k';
+  return 'R$ '+Math.round(n).toLocaleString('pt-BR');
+}
+function fmtPct(n){ return (n*100).toFixed(1).replace('.',',')+'%'; }
+function deltaTag(delta){
+  if(delta > 0.01) return {cls:'pos', sym:'▲', txt:fmtPct(delta)};
+  if(delta < -0.01) return {cls:'neg', sym:'▼', txt:fmtPct(delta)};
+  return {cls:'neu', sym:'•', txt:'0,0%'};
+}
+
+/* ----- View / Page switching (fix) ----- */
+function switchView(v, btn){
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('onepage').classList.toggle('active', v==='onepage');
+  document.getElementById('multipage').classList.toggle('active', v==='multipage');
+  // Re-render to avoid blank canvases after hidden
+  setTimeout(()=>renderAll(true), 80);
+}
+function switchPage(id, btn){
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const pg = document.getElementById(id);
+  if(pg) pg.classList.add('active');
+  setTimeout(()=>renderAll(true), 80);
+}
+
+/* ----- Clock and API timestamps ----- */
+function updateClock(){
+  const now=new Date();
+  const ts=now.toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('clock').textContent='Atualizado: '+ts;
+  const hm = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  ['apiClimaTs','apiRotasTs','tvApiTs','routeTs'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=hm; });
+  document.getElementById('lastEtl').textContent = '14:00 ✓';
+  document.getElementById('nextEtl').textContent = '16:30';
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ----- Weather simulation (shows data) ----- */
+const W_SEGS=[
+  {loc:'📍 Imigrantes — KM 20 (Planalto)', temp:22, icon:'⛅', desc:'Parcialmente nublado', humid:'68%', wind:'18 km/h', rain:'0,0 mm', vis:'9,5 km'},
+  {loc:'📍 Imigrantes — KM 40 (Serra)',    temp:17, icon:'🌫️', desc:'Neblina — visibilidade reduzida', humid:'96%', wind:'8 km/h',  rain:'0,8 mm', vis:'0,6 km'},
+  {loc:'📍 Imigrantes — KM 55 (Cubatão)',  temp:28, icon:'🌧️', desc:'Chuva moderada', humid:'91%', wind:'22 km/h', rain:'6,2 mm', vis:'3,8 km'},
+];
+let wSeg=0;
+function selectWeatherSeg(i, btn){
+  wSeg=i;
+  document.querySelectorAll('.wseg-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const w=W_SEGS[i];
+  document.getElementById('wLoc').textContent=w.loc;
+  document.getElementById('wTemp').innerHTML=w.temp+'<span>°C</span>';
+  document.getElementById('wIcon').textContent=w.icon;
+  document.getElementById('wDesc').textContent=w.desc;
+  document.getElementById('wHumid').textContent=w.humid;
+  document.getElementById('wWind').textContent=w.wind;
+  document.getElementById('wRain').textContent=w.rain;
+  document.getElementById('wVis').textContent=w.vis;
+  const now=new Date();
+  document.getElementById('wTime').textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('wNext').textContent=new Date(now.getTime()+15*60000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ----- Filters bind ----- */
+function bindFilters(){
+  const map = [
+    ['fConcessao','concessao'],
+    ['fCorredor','corredor'],
+    ['fSentido','sentido'],
+    ['fComparacao','cmp'],
+  ];
+  map.forEach(([id,key])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('change', ()=>{
+      state[key] = el.value;
+      renderAll();
+    });
+  });
+}
+function setPeriod(p, btn){
+  state.period = p;
+  document.querySelectorAll('.pchip').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderAll();
+}
+
+/* ----- Data engine: build base metrics by state ----- */
+function calcBaseMetrics(){
+  const r = mulberry32(seedFromState('base'));
+  const mMeta = META[state.concessao][state.period];
+
+  // Base: start near meta with deterministic noise
+  const vdm = clamp(mMeta.vdm * (0.92 + r()*0.18), mMeta.vdm*0.75, mMeta.vdm*1.25);
+  const rec = clamp(mMeta.rec * (0.90 + r()*0.22), mMeta.rec*0.70, mMeta.rec*1.35);
+  const vel = clamp(mMeta.vel * (0.85 + r()*0.30), 18, 95);
+  const ac  = Math.max(0, Math.round(mMeta.ac * (0.70 + r()*0.70)));
+  const opex = clamp(mMeta.opex * (0.95 + r()*0.12), 85, 125);
+  const capex = clamp(mMeta.capex * (0.75 + r()*0.35), 35, 100);
+
+  return {vdm, rec, vel, ac, opex, capex, meta:mMeta};
+}
+
+function calcComparator(metrics){
+  const r = mulberry32(seedFromState('cmp'));
+  if(state.cmp === 'meta'){
+    return {vdm:metrics.meta.vdm, rec:metrics.meta.rec, vel:metrics.meta.vel, ac:metrics.meta.ac, opex:metrics.meta.opex, capex:metrics.meta.capex, label:'Meta'};
+  }
+  // For periods, build a plausible previous-period comparator (slightly different)
+  const f = (min,max)=>min + (max-min)*r();
+  const sign = (r()<0.5?-1:1);
+  const adj = (v, pctMin, pctMax)=> v * (1 + sign*f(pctMin,pctMax));
+  return {
+    vdm: adj(metrics.vdm, 0.01, 0.08),
+    rec: adj(metrics.rec, 0.01, 0.07),
+    vel: clamp(adj(metrics.vel, 0.01, 0.10), 18, 95),
+    ac:  Math.max(0, Math.round(adj(metrics.ac, 0.05, 0.35))),
+    opex: clamp(adj(metrics.opex, 0.01, 0.06), 85, 125),
+    capex: clamp(adj(metrics.capex, 0.02, 0.12), 35, 100),
+    label: (state.cmp==='ontem'?'Ontem': state.cmp==='sem_ant'?'Semana Anterior': state.cmp==='mes_ant'?'Mês Anterior':'Ano Anterior')
+  };
+}
+
+/* ----- Routes engine ----- */
+function computeRouteNow(route){
+  const r = mulberry32(seedFromState(route.id));
+  const free = clamp( Math.round(route.km * (0.7 + r()*0.9)), 10, 320);
+  const delay = Math.round(clamp((r()*45) + (state.period==='hoje'? r()*10 : r()*25), 0, 65));
+  const real = free + delay;
+  const vel = clamp(Math.round((route.km / (real/60))), 8, 95);
+  const cong = clamp(Math.round((1 - vel/70) * 100), 0, 95);
+  let status='free';
+  if(cong>70) status='jammed'; else if(cong>40) status='heavy'; else if(cong>20) status='slow';
+  return {free, real, vel, cong, delay, status};
+}
+
+function filterRoutes(){
+  const wantConc = state.concessao;
+  const wantCorr = state.corredor;
+  return ROUTES.filter(r=>{
+    const concOk = (wantConc==='combo')
+      ? (r.conc==='imi'||r.conc==='rap'||r.conc==='cast'||r.conc==='urb')
+      : (r.conc===wantConc || r.conc==='urb'); // inclui urbano sempre (A validado)
+    const corrOk = (wantCorr==='all') ? true : (r.corr===wantCorr);
+    return concOk && corrOk;
+  });
+}
+
+function buildRouteTable(tbodyId){
+  const tb=document.getElementById(tbodyId);
+  if(!tb) return;
+  const list = filterRoutes().slice(0,10); // limite visual
+  tb.innerHTML = list.map((r,i)=>{
+    const n = computeRouteNow(r);
+    return `<tr onclick="pickRoute('${r.id}')">
+      <td><strong>${r.origem} → ${r.destino}</strong></td>
+      <td class="rvia">${r.via}</td>
+      <td><span class="rdot"><span class="dot ${DOT[n.status]}"></span>${STATUS_LABEL[n.status].replace(/[🟢🟡🟠🔴]/,'').trim()}</span></td>
+      <td>${n.vel} km/h</td>
+      <td style="font-weight:900;color:${n.cong>50?eco.red:n.cong>25?eco.orange:eco.green}">${n.cong}%</td>
+      <td style="font-weight:${n.delay>15?900:600};color:${n.delay>30?eco.red:n.delay>15?eco.orange:eco.muted}">+${n.delay} min</td>
+    </tr>`;
+  }).join('');
+}
+
+function pickRoute(routeId){
+  const r = ROUTES.find(x=>x.id===routeId);
+  if(!r) return;
+  const n = computeRouteNow(r);
+  // Update travel time card based on clicked route
+  document.getElementById('tvTime').innerHTML = n.real+' <small>min</small>';
+  document.getElementById('tvFree').textContent = n.free+' min';
+  document.getElementById('tvDist').textContent = r.km+' km';
+  document.getElementById('tvVia').textContent = r.via;
+  const st = document.getElementById('tvStatus');
+  st.textContent = STATUS_LABEL[n.status];
+  st.className = 'tv-pill '+n.status;
+  document.getElementById('tvDelay').textContent = n.delay;
+  document.getElementById('tvVkt').textContent = 'VKT: '+(r.km*n.real/1000).toFixed(0)+' K veíc·km';
+  renderImpacts(n, r);
+}
+
+/* ----- Travel calc (dropdowns) ----- */
+function fillCities(){
+  const o=document.getElementById('tvOrigin');
+  const d=document.getElementById('tvDest');
+  if(!o||!d) return;
+  o.innerHTML = CITIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  d.innerHTML = CITIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  o.value='sp'; d.value='santos';
+}
+function swapTV(){
+  const o=document.getElementById('tvOrigin'); const d=document.getElementById('tvDest');
+  const tmp=o.value; o.value=d.value; d.value=tmp; calcTravel();
+}
+function calcTravel(){
+  const o=document.getElementById('tvOrigin').value;
+  const d=document.getElementById('tvDest').value;
+  // Find best-matching route
+  const list = filterRoutes();
+  let best = list.find(r=> (r.origem.toLowerCase().includes(o) && r.destino.toLowerCase().includes(d)));
+  // fallback: pick deterministic
+  if(!best) best = list[0] || ROUTES[0];
+  pickRoute(best.id);
+}
+
+/* ----- Impacts (explainable) ----- */
+function renderImpacts(routeNow, route){
+  const box=document.getElementById('tvImpacts');
+  if(!box) return;
+  const items=[];
+  // Congestion impact
+  if(routeNow.cong>50) items.push({c:'red', t:`Congestionamento elevado (${routeNow.cong}%)`, d:`+${Math.min(40,routeNow.delay)} min`});
+  else if(routeNow.cong>25) items.push({c:'orange', t:`Fluxo instável (${routeNow.cong}%)`, d:`+${Math.min(20,routeNow.delay)} min`});
+  else items.push({c:'green', t:`Sem congestionamento relevante`, d:`+0 min`});
+  // Weather impact (from selected segment)
+  const w=W_SEGS[wSeg];
+  if(w.icon==='🌧️') items.push({c:'yellow', t:'Chuva moderada', d:'+5 min'});
+  if(w.icon==='🌫️') items.push({c:'orange', t:'Neblina (reduz velocidade)', d:'+8 min'});
+  // Period impact
+  if(state.period==='semana' || state.period==='mes') items.push({c:'blue', t:'Sazonalidade (pico de demanda)', d:'+4 min'});
+  // Accident (if high)
+  if(routeNow.delay>30) items.push({c:'red', t:'Evento operacional (ex.: acidente/obra)', d:'+12 min'});
+  box.innerHTML = items.map(x=>`<div class="impact-row"><div class="idk ${x.c}"></div>${x.t}<span style="color:${x.c==='red'?eco.red:x.c==='orange'?eco.orange:x.c==='yellow'?eco.yellow:x.c==='blue'?eco.blue:eco.green}">${x.d}</span></div>`).join('');
+}
+
+/* ----- KPI + comparison strip ----- */
+function renderKpis(metrics, comp){
+  // Deltas
+  const dVdm = pct(metrics.vdm, comp.vdm);
+  const dRec = pct(metrics.rec, comp.rec);
+  const dVel = pct(metrics.vel, comp.vel);
+  const dAc  = pct(metrics.ac,  comp.ac  || 1);
+  const dOpx = pct(metrics.opex, comp.opex);
+  const dCpx = pct(metrics.capex, comp.capex);
+
+  // Update values
+  document.getElementById('k_vdm').innerHTML = fmtInt(metrics.vdm)+' <small>veíc/dia</small>';
+  document.getElementById('k_rec').textContent = fmtMoney(metrics.rec);
+  document.getElementById('k_vel').innerHTML = Math.round(metrics.vel)+' <small>km/h</small>';
+  document.getElementById('k_ac').textContent = String(metrics.ac);
+  document.getElementById('k_opex').innerHTML = metrics.opex.toFixed(0).replace('.',',')+' <small>%</small>';
+  document.getElementById('k_capex').innerHTML = metrics.capex.toFixed(0).replace('.',',')+' <small>%</small>';
+
+  function foot(el, delta, label){
+    const t = deltaTag(delta);
+    el.innerHTML = `<span class="${t.cls==='pos'?'kup':t.cls==='neg'?'kdn':'kwrn'}">${t.sym} ${t.txt}</span><span style="color:var(--eco-muted)">vs. ${label}</span>`;
+  }
+  foot(document.getElementById('k_vdm_foot'), dVdm, comp.label);
+  foot(document.getElementById('k_rec_foot'), dRec, comp.label);
+  // vel: lower is worse usually, but keep delta
+  foot(document.getElementById('k_vel_foot'), dVel, comp.label);
+  // accidents: increase is worse: invert label color by mapping
+  const acEl = document.getElementById('k_ac_foot');
+  acEl.innerHTML = `<span class="${(metrics.ac<=comp.ac)?'kup':'kdn'}">${(metrics.ac<=comp.ac)?'▼':'▲'} ${(metrics.ac-comp.ac>=0?'+':'')+(metrics.ac-comp.ac)}</span><span style="color:var(--eco-muted)">vs. ${comp.label}</span>`;
+  foot(document.getElementById('k_opex_foot'), dOpx, comp.label);
+  foot(document.getElementById('k_capex_foot'), dCpx, comp.label);
+
+  // KPI compare tags (to show meta adherence too)
+  const mk = (delta, extra='')=>{
+    const t=deltaTag(delta);
+    const cls = t.cls==='pos'?'pos':t.cls==='neg'?'neg':'neu';
+    return `<span class="kcmp-tag ${cls}">${t.sym} ${t.txt}</span>${extra?`<span class="kcmp-lbl">${extra}</span>`:''}`;
+  };
+  document.getElementById('kc_vdm').innerHTML = mk(dVdm);
+  document.getElementById('kc_rec').innerHTML = mk(dRec);
+  document.getElementById('kc_vel').innerHTML = mk(dVel, 'ref: '+comp.label);
+  document.getElementById('kc_ac').innerHTML  = `<span class="kcmp-tag ${(metrics.ac<=comp.ac)?'pos':'neg'}">${(metrics.ac<=comp.ac)?'✓':'!'} ${metrics.ac} vs ${comp.ac}</span>`;
+  document.getElementById('kc_opex').innerHTML = mk(dOpx);
+  document.getElementById('kc_capex').innerHTML = mk(dCpx);
+
+  // Comparison strip (5 items)
+  const cmpTitle = document.getElementById('cmpTitle');
+  cmpTitle.textContent = `${state.period.toUpperCase()} — Base vs. ${comp.label}`;
+  const grid = document.getElementById('cmpGrid');
+  const strip = [
+    {lbl:'VDM', base:fmtInt(metrics.vdm), d:dVdm},
+    {lbl:'Receita', base:fmtMoney(metrics.rec), d:dRec},
+    {lbl:'Vel. Média', base:Math.round(metrics.vel)+' km/h', d:dVel},
+    {lbl:'Acidentes', base:String(metrics.ac), d:(metrics.ac-comp.ac)/Math.max(1,comp.ac)},
+    {lbl: state.cmp==='meta' ? 'Meta Aderência' : 'OPEX', base: (state.cmp==='meta') ? (Math.round(metrics.rec/metrics.meta.rec*100))+'%' : metrics.opex.toFixed(0)+'%', d:(state.cmp==='meta')?pct(metrics.rec, metrics.meta.rec):dOpx},
+  ];
+  grid.innerHTML = strip.map(x=>{
+    const t=deltaTag(x.d);
+    const cls = t.cls==='pos'?'up':t.cls==='neg'?'dn':(t.cls==='wrn'?'warn':'neu');
+    return `<div class="cmp-item">
+      <div class="cmp-lbl">${x.lbl}</div>
+      <div class="cmp-val">${x.base}</div>
+      <div><span class="cmp-delta ${cls}">${t.sym} ${t.txt}</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ----- Alerts and budget drivers ----- */
+function renderDrivers(metrics){
+  const box=document.getElementById('budgetDrivers');
+  if(!box) return;
+  // Make drivers based on OPEX and CAPEX deviation vs meta
+  const oDelta = metrics.opex - metrics.meta.opex;
+  const cDelta = metrics.capex - metrics.meta.capex;
+  const rows=[];
+  rows.push({k:'Manut. Pista', v: clamp(90 + (oDelta<0?5:-5), 70, 120), s:'ok'});
+  rows.push({k:'Energia Elétrica', v: clamp(100 + (oDelta>0?8:2), 70, 130), s:oDelta>0?'warn':'ok'});
+  rows.push({k:'Pessoal', v: clamp(95 + (oDelta>0?3:-2), 70, 120), s:'ok'});
+  rows.push({k:'TI e Sistemas', v: clamp(105 + (oDelta>0?12:4), 70, 140), s:oDelta>2?'err':'warn'});
+  const html = rows.map(r=>{
+    const color = r.s==='err'?eco.red:r.s==='warn'?eco.orange:eco.green;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
+      <span style="font-size:11px;font-weight:800">${r.k}</span>
+      <span style="font-size:11px;font-weight:900;color:${color}">${r.v.toFixed(0)}%</span>
+    </div><div style="height:8px;background:var(--eco-bg);border-radius:4px;overflow:hidden;margin-bottom:6px">
+      <div style="height:100%;width:${clamp(r.v,0,100)}%;background:${color};opacity:.7"></div></div>`;
+  }).join('');
+  box.innerHTML = html + `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--eco-border);font-size:10px;color:var(--eco-muted);line-height:1.5">
+    <strong>Leitura:</strong> OPEX ${metrics.opex.toFixed(0)}% vs meta ${metrics.meta.opex.toFixed(0)}% (Δ ${oDelta.toFixed(0)}pp). CAPEX ${metrics.capex.toFixed(0)}% vs meta ${metrics.meta.capex.toFixed(0)}% (Δ ${cDelta.toFixed(0)}pp).
+  </div>`;
+}
+
+function renderAlerts(metrics, routes){
+  const box=document.getElementById('alertsBox');
+  if(!box) return;
+  const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  // Pick worst route by congestion
+  const worst = routes.map(r=>({r, n:computeRouteNow(r)})).sort((a,b)=>b.n.cong-a.n.cong)[0];
+  const alerts=[];
+  if(worst && worst.n.cong>50){
+    alerts.push({cls:'crit', icon:'🔴', t:`Congestionamento crítico — ${worst.r.origem}→${worst.r.destino}`, b:`Vel. ${worst.n.vel} km/h · Cong. ${worst.n.cong}% · +${worst.n.delay} min`, time:`${now} · via ${worst.r.via}`});
+  }else{
+    alerts.push({cls:'ok', icon:'✅', t:'Operação estável', b:'Sem alertas críticos no recorte atual', time:`${now}`});
+  }
+  if(W_SEGS[wSeg].icon==='🌧️') alerts.push({cls:'warn', icon:'🟠', t:'Chuva em trecho crítico', b:'Ajuste de velocidade e comunicação preventiva', time:`${now} · ${W_SEGS[wSeg].loc.replace('📍 ','')}`});
+  if(metrics.opex>metrics.meta.opex+2) alerts.push({cls:'info', icon:'🟡', t:'OPEX acima do orçamento', b:`${metrics.opex.toFixed(0)}% vs meta ${metrics.meta.opex.toFixed(0)}% · revisar drivers`, time:`${now}`});
+  if(metrics.rec < metrics.meta.rec*0.95) alerts.push({cls:'blue', icon:'🎯', t:'Atenção: Receita abaixo da meta', b:`${fmtMoney(metrics.rec)} vs meta ${fmtMoney(metrics.meta.rec)}`, time:`${now}`});
+  box.innerHTML = alerts.map(a=>`<div class="abox ${a.cls}"><div style="font-size:16px;">${a.icon}</div><div>
+    <div class="abox-title">${a.t}</div><div class="abox-body">${a.b}</div><div class="abox-time">${a.time}</div></div></div>`).join('');
+}
+
+/* ----- Charts (all driven by same state) ----- */
+function renderCharts(metrics, comp, routes){
+  const r = mulberry32(seedFromState('charts'));
+  // Volume hour chart
+  const hrs = Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
+  const base = metrics.vdm/24;
+  const vol = hrs.map((_,i)=>{
+    const wave = 0.55 + 0.75*Math.sin((i-7)/24*2*Math.PI)**2;
+    const noise = 0.92 + r()*0.20;
+    return Math.round(base*wave*noise);
+  });
+  safeChart('chart_volume',{
+    type:'line',
+    data:{labels:hrs, datasets:[{label:'Volume (veíc/h)', data:vol, borderColor:eco.green, backgroundColor:'rgba(0,104,56,.10)', fill:true, tension:.35, pointRadius:2, borderWidth:2.5}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}},
+  });
+  document.getElementById('volHint').textContent = `${labelConcessao()} · ${labelPeriodo()} · ${labelCorredor()}`;
+
+  // Forecast 7d (simple)
+  const days=['Hoje','+1','+2','+3','+4','+5','+6'];
+  const f = days.map((_,i)=>Math.round(metrics.vdm*(0.94 + 0.12*r())*(i===4?1.15:1)));
+  safeChart('chart_forecast',{
+    type:'line',
+    data:{labels:days, datasets:[{label:'Previsão (VDM)', data:f, borderColor:eco.lime, backgroundColor:'rgba(141,198,63,.12)', fill:true, tension:.35, pointRadius:3, borderWidth:2.5}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}},
+  });
+
+  // Receita por praça
+  const pr=['P. Norte','P. Centro','P. Alpha','P. Beta','P. Litoral'];
+  const weights=[0.25,0.23,0.18,0.14,0.20];
+  const recs=weights.map(w=>Math.round(metrics.rec*w));
+  const metas=weights.map(w=>Math.round(metrics.meta.rec*w));
+  safeChart('chart_pracas',{
+    type:'bar',
+    data:{labels:pr, datasets:[
+      {label:'Receita', data:recs, backgroundColor:[eco.green,eco.gm,eco.lime,eco.teal,'rgba(0,169,143,.70)'], borderRadius:6},
+      {label:'Meta', data:metas, backgroundColor:'rgba(247,148,29,.25)', borderRadius:6}
+    ]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip,callbacks:{label:c=>` ${c.dataset.label}: ${fmtMoney(c.parsed.y)}`}}}, scales:{y:{ticks:{callback:v=>fmtMoney(v)}}}}
+  });
+
+  // Comparison chart (VDM vs comp)
+  safeChart('chart_cmp',{
+    type:'bar',
+    data:{labels:['VDM','Receita','Velocidade','Acidentes','OPEX','CAPEX'], datasets:[
+      {label:'Base', data:[metrics.vdm, metrics.rec/1000, metrics.vel, metrics.ac, metrics.opex, metrics.capex], backgroundColor:eco.green, borderRadius:6, barPercentage:.5},
+      {label:comp.label, data:[comp.vdm, comp.rec/1000, comp.vel, comp.ac, comp.opex, comp.capex], backgroundColor:'rgba(141,198,63,.35)', borderRadius:6, barPercentage:.5}
+    ]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}}
+  });
+
+  // Multi pages charts
+  // Exec trend
+  const x30 = Array.from({length:30},(_,i)=>String(i+1).padStart(2,'0'));
+  const trend = x30.map((_,i)=>Math.round(metrics.vdm*(0.90+0.16*Math.sin(i/30*2*Math.PI))*(0.92+0.18*r())));
+  safeChart('chart_exec_trend',{
+    type:'line',
+    data:{labels:x30, datasets:[{label:'VDM (pontos)', data:trend, borderColor:eco.teal, backgroundColor:'rgba(0,169,143,.10)', fill:true, tension:.35, pointRadius:0, borderWidth:2}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}}
+  });
+  // Exec rank
+  const rankLbl = routes.slice(0,7).map(r=>`${r.origem}→${r.destino}`);
+  const rankVal = rankLbl.map(()=>Math.round(20000+ r()*40000));
+  safeChart('chart_exec_rank',{type:'bar', data:{labels:rankLbl, datasets:[{label:'VDM (proxy)', data:rankVal, backgroundColor:eco.green, borderRadius:6}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{...tip}}}
+  });
+
+  // Ops speed profile
+  const kms = Array.from({length:60},(_,i)=>i+1);
+  const prof = kms.map(i=>clamp(Math.round(70 - (i>35? (i-35)*1.4:0) - (routes.length>7?8:0) + r()*8), 12, 95));
+  safeChart('chart_speed_profile',{type:'line', data:{labels:kms, datasets:[{label:'Velocidade por KM (demo)', data:prof, borderColor:eco.green, backgroundColor:'rgba(0,104,56,.08)', fill:true, tension:.35, pointRadius:0, borderWidth:2}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}}
+  });
+
+  // Traffic
+  safeChart('chart_traffic_hour',{type:'bar', data:{labels:hrs, datasets:[{label:'Volume', data:vol, backgroundColor:'rgba(0,104,56,.55)', borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{...tip}}}
+  });
+  const cong = vol.map(v=>clamp(Math.round((1 - (metrics.vel/70)) * 60 + (v/base-1)*25 + r()*6), 0, 95));
+  safeChart('chart_traffic_cong',{type:'line', data:{labels:hrs, datasets:[{label:'Congestionamento (%)', data:cong, borderColor:eco.red, backgroundColor:'rgba(229,62,62,.10)', fill:true, tension:.35, pointRadius:0, borderWidth:2}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}, scales:{y:{ticks:{callback:v=>v+'%'}}}}
+  });
+
+  // Season
+  const dowLbl=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dowVal=dowLbl.map((d,i)=>Math.round(metrics.vdm*(0.80 + (i===5?0.25: i===6?0.35:0.05*i) )*(0.95+r()*0.10)));
+  safeChart('chart_season_dow',{type:'bar', data:{labels:dowLbl, datasets:[{label:'VDM médio', data:dowVal, backgroundColor:dowVal.map(v=>v>metrics.vdm*1.15?eco.red:v>metrics.vdm*1.05?eco.orange:eco.lime), borderRadius:6}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{...tip}}}
+  });
+  const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const idx = months.map((m,i)=>Math.round(100 + 30*Math.sin((i+1)/12*2*Math.PI) + (i in {0:1,11:1}?20:0) + r()*8));
+  safeChart('chart_season_month',{type:'bar', data:{labels:months, datasets:[{label:'Índice', data:idx, backgroundColor:idx.map(v=>v>130?eco.red:v>110?eco.orange:v>95?eco.lime:eco.green), borderRadius:6}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{...tip}}}
+  });
+
+  // Revenue
+  safeChart('chart_rev_meta',{type:'line', data:{labels:['Jan','Fev','Mar','Abr','Mai','Jun'], datasets:[
+    {label:'Receita (R$M)', data:[38.2,36.5,40.1,42.3,41.8,metrics.rec/1e6], borderColor:eco.green, backgroundColor:'rgba(0,104,56,.08)', fill:true, tension:.35, pointRadius:3, borderWidth:2},
+    {label:'Meta (R$M)', data:[40,40,42,44,43,metrics.meta.rec/1e6], borderColor:eco.orange, borderDash:[5,3], fill:false, tension:.35, pointRadius:2, borderWidth:1.5},
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}}
+  });
+  safeChart('chart_rev_mix',{type:'doughnut', data:{labels:['TAG','Cartão','PIX','Dinheiro','Isento'], datasets:[{data:[68,14,11,5,2], backgroundColor:[eco.green,eco.lime,eco.teal,eco.orange,'rgba(0,104,56,.30)'], borderWidth:3, borderColor:'#fff', hoverOffset:8}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'right',labels:{usePointStyle:true,boxWidth:10,padding:12}}, tooltip:{...tip}}}
+  });
+
+  // Finance
+  safeChart('chart_fin_opex',{type:'bar', data:{labels:['Manut. Pista','Energia','Pessoal','TI'], datasets:[
+    {label:'Realizado (%)', data:[87,108,95,118].map(v=>clamp(v + (metrics.opex-metrics.meta.opex), 70, 140)), backgroundColor:[eco.green,eco.orange,eco.green,eco.red], borderRadius:6},
+    {label:'Meta (%)', data:[100,100,100,100], backgroundColor:'rgba(141,198,63,.25)', borderRadius:6},
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}, scales:{y:{ticks:{callback:v=>v+'%'}}}}
+  });
+  safeChart('chart_fin_capex',{type:'bar', data:{labels:['Obras','Equipamentos','Sistemas','Obras de Arte'], datasets:[
+    {label:'Executado (%)', data:[45,62,71,55].map(v=>clamp(v + (metrics.capex-metrics.meta.capex)*0.6, 0, 100)), backgroundColor:[eco.teal,eco.lime,eco.green,eco.orange], borderRadius:6},
+    {label:'Meta (%)', data:[70,70,70,70], backgroundColor:'rgba(0,169,143,.20)', borderRadius:6},
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{usePointStyle:true,boxWidth:8}}, tooltip:{...tip}}, scales:{y:{ticks:{callback:v=>v+'%'}}}}
+  });
+
+  // Safety
+  safeChart('chart_safe_hour',{type:'bar', data:{labels:['00-03','03-06','06-09','09-12','12-15','15-18','18-21','21-24'], datasets:[
+    {label:'Acidentes', data:[3,2,9,6,5,12,8,2].map(v=>Math.max(0, Math.round(v*(metrics.ac/Math.max(1,metrics.meta.ac))))), backgroundColor:'rgba(247,148,29,.75)', borderRadius:6}
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{...tip}}}
+  });
+  safeChart('chart_safe_weather',{type:'polarArea', data:{labels:['☀️ Ensolarado','⛅ Nublado','🌦️ Chuva Leve','🌧️ Chuva Forte','🌫️ Neblina'], datasets:[
+    {data:[15,10,10,8,4].map(v=>Math.max(0, Math.round(v*(metrics.ac/Math.max(1,metrics.meta.ac))))), backgroundColor:['rgba(141,198,63,.70)','rgba(0,169,143,.70)','rgba(246,201,14,.75)','rgba(247,148,29,.80)','rgba(229,62,62,.80)']}
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{usePointStyle:true,boxWidth:10}}, tooltip:{...tip}}}
+  });
+}
+
+/* ----- Sources + Glossary (detailed) ----- */
+function labelConcessao(){
+  return state.concessao==='combo'?'Imigrantes + Raposo + Castelo': state.concessao==='imi'?'Imigrantes': state.concessao==='rap'?'Raposo':'Castelo';
+}
+function labelPeriodo(){
+  return state.period==='hoje'?'Hoje':state.period==='semana'?'Semana':state.period==='mes'?'Mês':'Ano';
+}
+function labelCorredor(){
+  return state.corredor==='all'?'Todos os corredores': state.corredor==='rodovia'?'Rodovias':'Urbano (Grande SP)';
+}
+function labelCmp(){
+  return state.cmp==='ontem'?'Ontem':state.cmp==='sem_ant'?'Semana Anterior':state.cmp==='mes_ant'?'Mês Anterior':state.cmp==='ano_ant'?'Ano Anterior':'Meta';
+}
+
+function renderSources(){
+  const el=document.getElementById('sourcesLong');
+  if(!el) return;
+  el.innerHTML = `
+  <div style="margin-bottom:10px"><strong>Visão geral:</strong> este dashboard separa <strong>tempo real</strong> (APIs) de <strong>histórico e governança</strong> (SQL Server/SharePoint). No Power BI, isso vira um modelo híbrido: <em>DirectQuery</em> (realtime) + <em>Import</em> (histórico), com relacionamento por <code>DataHora</code>, <code>Concessão</code>, <code>Trecho</code> e <code>Rota</code>.</div>
+
+  <div style="margin-bottom:10px"><strong>1) APIs (tempo real / near-real-time)</strong><br>
+  • <strong>OpenWeather</strong>: temperatura, chuva 1h, vento, visibilidade por ponto (KM 20 / Serra / Cubatão). <em>Cadência recomendada:</em> 10–15 min. <em>Uso:</em> explicar variações de velocidade, risco de acidente, operação na serra.<br>
+  • <strong>Google Maps Distance Matrix</strong>: tempo com tráfego e livre, distância, rota/alternativas. <em>Cadência:</em> 10–15 min (custo por chamada). <em>Uso:</em> Tempo de Viagem, Status das Rotas, Congestionamento.</div>
+
+  <div style="margin-bottom:10px"><strong>2) SQL Server (transacional e histórico)</strong><br>
+  • <strong>Contagens / pórticos</strong>: volume por hora, por praça, por sentido → base do <strong>VDM</strong> e sazonalidade.<br>
+  • <strong>Pedágio</strong>: transações e arrecadação → <strong>Receita</strong>, Ticket Médio, Mix de Pagamento, TAG%.<br>
+  • <strong>Ocorrências</strong>: acidentes/incidentes, severidade, tempo de atendimento → <strong>TMI</strong>, acidentalidade por VKT.<br>
+  • <strong>Financeiro</strong>: OPEX real/orçado, CAPEX planejado/real → aderência orçamentária e execução de investimentos.</div>
+
+  <div style="margin-bottom:10px"><strong>3) SharePoint / Excel (metas e orçamento)</strong><br>
+  • <strong>Metas por concessão e período</strong> (Hoje/Semana/Mês/Ano): VDM, Receita, Velocidade, Acidentes, OPEX%, CAPEX%.<br>
+  • <strong>Orçamento por categoria</strong> (TI, Energia, Pessoal, Manutenção): drivers para explicar OPEX & desvios.<br>
+  <em>Recomendação:</em> manter uma tabela <code>aux_metas</code> governada, com vigência e versão, para auditoria.</div>
+
+  <div style="padding:10px;border-radius:12px;border:1px solid var(--eco-border);background:rgba(45,109,180,.06)">
+    <strong>Arquitetura sênior (prática):</strong><br>
+    • <strong>FAST pipeline</strong> (15 min): APIs → tabela <code>fato_realtime</code> (SQL) → Power BI DirectQuery.<br>
+    • <strong>FULL pipeline</strong> (8×/dia): SQL+SharePoint → fato histórico + dimensões → Power BI Import (incremental refresh).<br>
+    • <strong>Quality Gates</strong>: checagens de nulos, duplicidade, outliers, consistência de chaves, e reconciliação de receita vs transações.<br>
+  </div>`;
+}
+
+function renderGlossary(){
+  const el=document.getElementById('glossLong');
+  if(!el) return;
+  el.innerHTML = `
+  <div style="margin-bottom:12px"><strong>Como usar este glossário:</strong> cada indicador segue o padrão <strong>Definição → Cálculo → Leitura executiva → Decisão/Ação</strong>.</div>
+
+  <div style="margin-bottom:14px"><strong>VDM — Volume Diário Médio</strong><br>
+  <em>Definição:</em> média de veículos em 24h.<br>
+  <em>Cálculo:</em> <code>VDM = Σ veículos / nº dias</code> (por trecho/concessão).<br>
+  <em>Leitura:</em> VDM ↑ tende a elevar receita e pressão operacional (capacidade). VDM ↓ pode indicar clima, evento, restrição, falha de sensor.<br>
+  <em>Ação:</em> ajustar operação (faixa extra), comunicação ao usuário, e validar sensor/outliers.</div>
+
+  <div style="margin-bottom:14px"><strong>Receita de Pedágio</strong><br>
+  <em>Cálculo:</em> <code>Receita = Σ valor_transação</code> (filtrado por data, praça, concessão).<br>
+  <em>Leitura:</em> Receita abaixo da meta com VDM alto sugere mudança no mix (isenção, evasão, categoria).<br>
+  <em>Ação:</em> investigar por praça, forma de pagamento, categoria de veículo e auditoria de isenções.</div>
+
+  <div style="margin-bottom:14px"><strong>Velocidade Média</strong><br>
+  <em>Cálculo:</em> média ponderada por fluxo: <code>Vel = Σ(vel_trecho × volume_trecho)/Σ volume</code>.<br>
+  <em>Leitura:</em> queda de velocidade com clima/neblina é esperado; queda sem explicação é sinal de incidente/obra.<br>
+  <em>Ação:</em> acionar operação e priorizar trechos com maior VDM/VKT.</div>
+
+  <div style="margin-bottom:14px"><strong>Índice de Congestionamento</strong><br>
+  <em>Definição:</em> perda relativa vs velocidade livre (VL).<br>
+  <em>Cálculo:</em> <code>Cong(%) = 1 − (Vel_real / VL)</code>.<br>
+  <em>Leitura:</em> &gt;50% = risco de efeito dominó em rotas alternativas. <br>
+  <em>Ação:</em> re-roteamento, comunicação, gestão de faixas e incident response.</div>
+
+  <div style="margin-bottom:14px"><strong>Tempo de Viagem (com tráfego)</strong><br>
+  <em>Cálculo:</em> vindo do Google Maps (tempo real) ou sensor/telemetria. Guardar também <strong>tempo livre</strong> para explicar o atraso.<br>
+  <em>Leitura:</em> o que importa para executivo é <strong>atraso</strong> e <strong>causa</strong> (clima/incidente/pico).<br>
+  <em>Ação:</em> priorizar mitigação em rotas de maior demanda e impacto econômico.</div>
+
+  <div style="margin-bottom:14px"><strong>Acidentes & TMI</strong><br>
+  <em>Cálculo:</em> contagem por janela (24h/mês) e <code>TMI = média(chegada − acionamento)</code>.<br>
+  <em>Leitura:</em> aumento de acidentes com chuva/neblina é padrão; aumento sem clima = atenção em sinalização/hotspots.<br>
+  <em>Ação:</em> reforço de equipes, campanha preventiva, intervenções em pontos críticos.</div>
+
+  <div style="margin-bottom:14px"><strong>OPEX (Aderência)</strong><br>
+  <em>Definição:</em> gasto operacional vs orçamento.<br>
+  <em>Cálculo:</em> <code>OPEX% = Realizado / Orçado × 100</code>.<br>
+  <em>Leitura:</em> acima de 100% pede explicação por drivers (Energia, TI, Manutenção).<br>
+  <em>Ação:</em> plano de contenção e renegociação de contratos/custos variáveis.</div>
+
+  <div style="margin-bottom:14px"><strong>CAPEX (Execução)</strong><br>
+  <em>Cálculo:</em> <code>CAPEX% = Executado_YTD / Planejado_YTD × 100</code>.<br>
+  <em>Leitura:</em> abaixo da meta aumenta risco regulatório e impacto futuro de manutenção (piorando OPEX).<br>
+  <em>Ação:</em> replanejar cronograma e priorizar projetos de maior retorno/risco.</div>
+
+  <div style="padding:10px;border-radius:12px;border:1px solid var(--eco-border);background:rgba(0,104,56,.05)">
+    <strong>Perguntas executivas que este painel responde:</strong><br>
+    • O que piorou/melhorou vs referência? (<em>Comparar com</em>)<br>
+    • Qual rota/trecho explica o impacto? (Status das Rotas + Tempo de Viagem)<br>
+    • A causa é clima, pico, incidente ou orçamento? (Weather + Alertas + Drivers)<br>
+    • Qual ação recomendada agora (operação) e no mês (capex/opex)?<br>
+  </div>`;
+}
+
+/* ----- Master render ----- */
+function renderAll(force=false){
+  // Ensure weather is populated once
+  if(!document.getElementById('wLoc').textContent || document.getElementById('wLoc').textContent==='—'){
+    selectWeatherSeg(0, document.querySelector('.wseg-btn'));
+  }
+
+  const metrics = calcBaseMetrics();
+  const comp = calcComparator(metrics);
+
+  // KPIs + strip
+  renderKpis(metrics, comp);
+
+  // Routes + travel
+  const routes = filterRoutes();
+  buildRouteTable('routeTbody');
+  buildRouteTable('routeTbody_ops');
+
+  // Fill cities if empty, then compute travel
+  if(!document.getElementById('tvOrigin').options.length) fillCities();
+  calcTravel();
+
+  // Alerts + drivers
+  renderDrivers(metrics);
+  renderAlerts(metrics, routes);
+
+  // Charts
+  renderCharts(metrics, comp, routes);
+
+  // Text pages
+  renderSources();
+  renderGlossary();
+}
+
+/* ----- Init ----- */
+window.addEventListener('load', ()=>{
+  bindFilters();
+  renderAll(true);
+});
+</script>
+</body>
+</html>
