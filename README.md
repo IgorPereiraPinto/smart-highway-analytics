@@ -1,10 +1,16 @@
-# Smart Highway Analytics (SHA)
+# Smart Highway Analytics (SHA) — v8.0
 
 > Plataforma de Business Intelligence para monitoramento operacional e gestão executiva de concessões rodoviárias — projetada como protótipo de alta fidelidade para implementação no Power BI.
 
-[![Abrir Dashboard](https://img.shields.io/badge/Abrir%20Dashboard-GitHub%20Pages-006838?style=for-the-badge&logo=github)](https://igorpereirapinto.github.io/smart-highway-analytics/)
-[![HTML](https://img.shields.io/badge/Stack-HTML%20%2B%20Chart.js-8DC63F?style=for-the-badge)]()
-[![Status](https://img.shields.io/badge/Status-Demo%20%2F%20Protótipo-F7941D?style=for-the-badge)]()
+![Stack](https://img.shields.io/badge/Stack-HTML%20%2B%20Chart.js-8DC63F?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Demo%20%2F%20Protótipo-F7941D?style=for-the-badge)
+![Versão](https://img.shields.io/badge/Versão-8.0-006838?style=for-the-badge)
+
+<br>
+
+### 🚀 [Clique aqui para abrir o dashboard →](https://igorpereirapinto.github.io/smart-highway-analytics/)
+
+> ⚡ Abre direto no navegador — sem instalação, sem login.
 
 ---
 
@@ -210,4 +216,6 @@ Analista de Dados / BI Sênior
 [LinkedIn](https://linkedin.com/in/igorpereirapinto) · [GitHub](https://github.com/igorpereirapinto)
 
 > *"Dado sem pergunta de negócio é relatório. Dado com pergunta é decisão."*
+
+
 
