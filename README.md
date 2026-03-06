@@ -4,7 +4,6 @@
 
 ![Stack](https://img.shields.io/badge/Stack-HTML%20%2B%20Chart.js-8DC63F?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Demo%20%2F%20Protótipo-F7941D?style=for-the-badge)
-
 <br>
 
 ### 🚀 [Clique aqui para abrir o dashboard →](https://igorpereirapinto.github.io/smart-highway-analytics/)
