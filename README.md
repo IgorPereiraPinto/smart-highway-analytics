@@ -1,10 +1,9 @@
-# Smart Highway Analytics (SHA) — v8.0
+# Smart Highway Analytics (SHA)
 
 > Plataforma de Business Intelligence para monitoramento operacional e gestão executiva de concessões rodoviárias — projetada como protótipo de alta fidelidade para implementação no Power BI.
 
 ![Stack](https://img.shields.io/badge/Stack-HTML%20%2B%20Chart.js-8DC63F?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Demo%20%2F%20Protótipo-F7941D?style=for-the-badge)
-![Versão](https://img.shields.io/badge/Versão-8.0-006838?style=for-the-badge)
 
 <br>
 
