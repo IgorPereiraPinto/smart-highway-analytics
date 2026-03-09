@@ -116,10 +116,34 @@ code{font-family:'JetBrains Mono',monospace;}
 .kcmp-tag.wrn{background:rgba(247,148,29,.12);color:#9a4800;}
 .kcmp-lbl{font-size:9px;color:var(--eco-muted);}
 /* Weather */
-.wcard{background:linear-gradient(135deg,var(--eco-green) 0%,var(--eco-teal) 100%);
-  border-radius:var(--r-lg);padding:18px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md);}
-.wapi{position:absolute;top:10px;right:12px;background:rgba(255,255,255,.18);
-  border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:2px 7px;font-size:9px;font-weight:900;}
+.wcard{
+  background:linear-gradient(135deg,var(--eco-green) 0%,var(--eco-teal) 100%);
+  border-radius:var(--r-lg);
+  padding:18px;
+  padding-top:42px; /* reserva espaço pro badge */
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+}
+
+.wapi{
+  position:absolute;
+  top:10px;
+  right:12px;
+  max-width:170px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:8px;
+  padding:2px 7px;
+  font-size:9px;
+  font-weight:900;
+  color:#fff;     /* importante */
+  z-index:2;      /* garante ficar acima */
+}
 .wsegment-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
 .wseg-btn{font-size:9px;font-weight:900;padding:3px 8px;border-radius:8px;cursor:pointer;border:none;font-family:'Sora',sans-serif;
   background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);transition:all .2s;}
@@ -355,26 +379,36 @@ code{font-family:'JetBrains Mono',monospace;}
 
     <div style="display:grid;grid-template-columns:240px 1fr 1fr;gap:16px;" class="gap">
       <div class="wcard">
-        <div class="wapi">🌤️ OpenWeather (demo)</div>
-        <div class="wsegment-tabs">
-          <button class="wseg-btn active" onclick="selectWeatherSeg(0,this)">KM 20</button>
-          <button class="wseg-btn" onclick="selectWeatherSeg(1,this)">Serra</button>
-          <button class="wseg-btn" onclick="selectWeatherSeg(2,this)">Cubatão</button>
-        </div>
-        <div class="wloc" id="wLoc">—</div>
-        <div class="wmain">
-          <div class="wtemp" id="wTemp">—<span>°C</span></div>
-          <div class="wicon" id="wIcon">⛅</div>
-        </div>
-        <div class="wdesc" id="wDesc">—</div>
-        <div class="wgrid">
-          <div class="wstat"><div class="wstat-lbl">💧 Umidade</div><div class="wstat-val" id="wHumid">—</div></div>
-          <div class="wstat"><div class="wstat-lbl">🌬️ Vento</div><div class="wstat-val" id="wWind">—</div></div>
-          <div class="wstat"><div class="wstat-lbl">🌧️ Chuva 1h</div><div class="wstat-val" id="wRain">—</div></div>
-          <div class="wstat"><div class="wstat-lbl">👁️ Visib.</div><div class="wstat-val" id="wVis">—</div></div>
-        </div>
-        <div class="wfooter"><span>🔄 Atualizado: <span id="wTime">--:--</span></span><span>Próx: <span id="wNext">--:--</span></span></div>
-      </div>
+  <div class="wapi" title="OpenWeather (demo)">🌤️ OpenWeather (demo)</div>
+
+  <div class="wsegment-tabs">
+    <button class="wseg-btn active" onclick="selectWeatherSeg(0,this)">KM 20</button>
+    <button class="wseg-btn" onclick="selectWeatherSeg(1,this)">Serra</button>
+    <button class="wseg-btn" onclick="selectWeatherSeg(2,this)">Cubatão</button>
+  </div>
+
+  <div class="wloc" id="wLoc">—</div>
+
+  <div class="wmain">
+    <div class="wtemp" id="wTemp">—<span>°C</span></div>
+    <div class="wicon" id="wIcon">⛅</div>
+  </div>
+
+  <div class="wdesc" id="wDesc">—</div>
+
+  <div class="wgrid">
+    <div class="wstat"><div class="wstat-lbl">💧 Umidade</div><div class="wstat-val" id="wHumid">—</div></div>
+    <div class="wstat"><div class="wstat-lbl">🌬️ Vento</div><div class="wstat-val" id="wWind">—</div></div>
+    <div class="wstat"><div class="wstat-lbl">🌧️ Chuva 1h</div><div class="wstat-val" id="wRain">—</div></div>
+    <div class="wstat"><div class="wstat-lbl">👁️ Visib.</div><div class="wstat-val" id="wVis">—</div></div>
+  </div>
+
+  <div class="wfooter">
+    <span>🔄 Atualizado: <span id="wTime">--:--</span></span>
+    <span>Próx: <span id="wNext">--:--</span></span>
+  </div>
+</div>
+       
 
       <div class="tvcard">
         <div class="ch">
